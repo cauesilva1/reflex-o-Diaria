@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ChatBubble from "../components/ChatBubble";
 import InputArea from "../components/InputArea";
 import { ScrollArea } from "../components/ui/scroll-area";
@@ -14,6 +14,7 @@ type ReflectionData = {
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [reflection, setReflection] = useState<ReflectionData | null>(null);
+  const [clearInput, setClearInput] = useState(false);
 
   const handleSend = async (text: string, type: "bible" | "psych") => {
     setMessages((prev) => [...prev, { text, isUser: true }]);
@@ -61,12 +62,15 @@ export default function Home() {
             type: reflection.type,
           }),
         });
-  
+
         const data = await res.json();
-        console.log("Resposta da API:", data); // ajuda a debugar
-  
+        console.log("Resposta da API:", data);
+
         if (data.success) {
-          console.log("Reflexão salva com sucesso!");
+          alert("Reflexão salva com sucesso!");
+          setMessages([]);       // Limpa mensagens
+          setReflection(null);   // Limpa reflexão
+          setClearInput(true);   // Dispara limpeza do input
         } else {
           console.error("Erro ao salvar reflexão:", data.message || "Erro desconhecido");
         }
@@ -77,14 +81,19 @@ export default function Home() {
           console.error("Erro desconhecido:", error);
         }
       }
-      
     }
   };
-  
 
   const handleDiscardReflection = () => {
     setReflection(null);
   };
+
+  // Reseta o sinal após limpar o input
+  useEffect(() => {
+    if (clearInput) {
+      setClearInput(false);
+    }
+  }, [clearInput]);
 
   return (
     <main className="min-h-screen bg-gray-100 flex justify-center items-center px-4 py-8">
@@ -99,7 +108,7 @@ export default function Home() {
             ))}
           </ScrollArea>
 
-          <InputArea onSend={handleSend} />
+          <InputArea onSend={handleSend} clearSignal={clearInput} />
         </div>
 
         {/* Área da reflexão */}
