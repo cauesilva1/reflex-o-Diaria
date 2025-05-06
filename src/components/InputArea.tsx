@@ -1,13 +1,19 @@
-// components/InputArea.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface Props {
   onSend: (text: string, type: "bible" | "psych") => void;
+  clearSignal: boolean;
 }
 
-export default function InputArea({ onSend }: Props) {
+export default function InputArea({ onSend, clearSignal }: Props) {
   const [text, setText] = useState("");
   const [type, setType] = useState<"bible" | "psych">("bible");
+
+  useEffect(() => {
+    if (clearSignal) {
+      setText("");
+    }
+  }, [clearSignal]);
 
   const handleSend = () => {
     if (!text.trim()) return;
