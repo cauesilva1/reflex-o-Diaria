@@ -2,7 +2,7 @@
 import { useState } from "react";
 import ChatBubble from "../components/ChatBubble";
 import InputArea from "../components/InputArea";
-import { ScrollArea } from "../components/ui/scroll-area"; // Importando o ScrollArea
+import { ScrollArea } from "../components/ui/scroll-area";
 
 type Message = { text: string; isUser: boolean };
 type ReflectionData = {
@@ -84,56 +84,56 @@ export default function Home() {
   };
 
   const handleDiscardReflection = () => {
-    setReflection(null); // Descarta a reflexão
+    setReflection(null);
   };
 
   return (
-    <main className="max-w-full h-screen flex justify-center gap-18 p-2">
-      <div className="w-[60%] p-4 flex flex-col gap-4 border-2 rounded-sm">  
-        <h1 className="text-2xl font-bold text-center">Reflexão do Dia</h1>
+    <main className="min-h-screen bg-gray-100 flex justify-center items-center px-4 py-8">
+      <div className="flex flex-col md:flex-row gap-6 w-full max-w-screen-lg">
+        {/* Área de mensagens */}
+        <div className="bg-white rounded-lg shadow-lg w-full md:w-2/3 flex flex-col p-6 max-h-[90vh] min-h-[80vh]">
+          <h1 className="text-3xl font-semibold text-center text-gray-800 mb-6">Reflexão do Dia</h1>
 
-        {/* Usando ScrollArea do ShadCN para mensagens */}
-        <div className="flex flex-col gap-2 flex-1 overflow-hidden">
-          <ScrollArea className="h-[70vh]"> {/* Adiciona a rolagem para a área de mensagens */}
+          <ScrollArea className="flex-1 mb-4 bg-gray-50 p-4 rounded-lg overflow-auto">
             {messages.map((msg, i) => (
               <ChatBubble key={i} message={msg.text} isUser={msg.isUser} />
             ))}
           </ScrollArea>
+
+          <InputArea onSend={handleSend} />
         </div>
 
-        <InputArea onSend={handleSend} />
-      </div>
-      
-      <div className="flex w-[20%]">
+        {/* Área da reflexão */}
         {reflection && (
-          <div className="flex flex-col items-end mt-4">
-            {/* Usando ScrollArea do ShadCN para a reflexão */}
-            <ScrollArea className="h-[90vh] w-[300px]"> {/* Adiciona a rolagem para a área de reflexão */}
-              <div className="bg-blue-100 text-black p-4 rounded-lg shadow-lg">
-                <div className="font-semibold">O que você escreveu:</div>
-                <p className="mt-1">{reflection.text}</p>
-                <div className="font-semibold mt-2">Tipo de Reflexão:</div>
-                <p>{reflection.type === "bible" ? "Bíblica" : "Psicológica"}</p>
-                <div className="font-semibold mt-2">Resposta da IA:</div>
-                <p>{reflection.reflection}</p>
-
-                <div className="flex gap-2 mt-4">
-                  <button
-                    className="bg-green-500 text-white py-2 px-4 rounded"
-                    onClick={handleSaveReflection}
-                  >
-                    Salvar
-                  </button>
-                  <button
-                    className="bg-red-500 text-white py-2 px-4 rounded"
-                    onClick={handleDiscardReflection}
-                  >
-                    Não Salvar
-                  </button>
-                </div>
-                
+          <div className="bg-white rounded-lg shadow-lg w-full md:w-1/3 flex flex-col p-6 max-h-[90vh] min-h-[80vh]">
+            <ScrollArea className="flex-1 bg-gray-50 p-4 rounded-lg overflow-auto">
+              <div className="text-gray-800">
+                <h3 className="font-semibold text-xl mb-4">Detalhes da Reflexão</h3>
+                <div className="font-medium">O que você escreveu:</div>
+                <p className="text-gray-600">{reflection.text}</p>
+                <div className="font-medium mt-4">Tipo de Reflexão:</div>
+                <p className="text-gray-600">
+                  {reflection.type === "bible" ? "Bíblica" : "Psicológica"}
+                </p>
+                <div className="font-medium mt-4">Resposta da IA:</div>
+                <p className="text-gray-600">{reflection.reflection}</p>
               </div>
             </ScrollArea>
+
+            <div className="flex flex-col sm:flex-row gap-4 mt-6 justify-center">
+              <button
+                className="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-green-600 transition"
+                onClick={handleSaveReflection}
+              >
+                Salvar
+              </button>
+              <button
+                className="bg-red-500 text-white py-2 px-6 rounded-lg hover:bg-red-600 transition"
+                onClick={handleDiscardReflection}
+              >
+                Não Salvar
+              </button>
+            </div>
           </div>
         )}
       </div>
