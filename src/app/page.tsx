@@ -70,9 +70,14 @@ export default function Home() {
         } else {
           console.error("Erro ao salvar reflexão:", data.message || "Erro desconhecido");
         }
-      } catch (error: any) {
-        console.error("Erro ao tentar salvar reflexão:", error.message || error.toString());
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error("Erro ao tentar salvar reflexão:", error.message || error.toString());
+        } else {
+          console.error("Erro desconhecido:", error);
+        }
       }
+      
     }
   };
   
