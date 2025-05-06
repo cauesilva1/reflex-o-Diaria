@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
 
     // Salva no Supabase
     const { error } = await supabase
-      .from('messages')
+      .from('message')
       .insert([{ text, reflection, type }]); // Inserindo 'type' no banco
 
     if (error) {

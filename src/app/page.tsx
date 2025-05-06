@@ -14,14 +14,6 @@ type ReflectionData = {
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [reflection, setReflection] = useState<ReflectionData | null>(null);
-  const [reflectionType, setReflectionType] = useState<"bible" | "psych">("bible");
-
-  const handleChangeReflectionType = (newType: "bible" | "psych") => {
-    if (newType !== reflectionType) {
-      setReflectionType(newType);
-      setReflection(null);
-    }
-  };
 
   const handleSend = async (text: string, type: "bible" | "psych") => {
     setMessages((prev) => [...prev, { text, isUser: true }]);
@@ -69,19 +61,21 @@ export default function Home() {
             type: reflection.type,
           }),
         });
-
+  
         const data = await res.json();
-
+        console.log("Resposta da API:", data); // ajuda a debugar
+  
         if (data.success) {
           console.log("Reflexão salva com sucesso!");
         } else {
-          console.error("Erro ao salvar reflexão:", data.message);
+          console.error("Erro ao salvar reflexão:", data.message || "Erro desconhecido");
         }
-      } catch (error) {
-        console.error("Erro ao tentar salvar reflexão:", error);
+      } catch (error: any) {
+        console.error("Erro ao tentar salvar reflexão:", error.message || error.toString());
       }
     }
   };
+  
 
   const handleDiscardReflection = () => {
     setReflection(null);
