@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, signUp } from "@/lib/auth";
 
+type AuthError = {
+  message: string;
+};
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,15 +32,17 @@ export default function LoginPage() {
         await signIn(email, password);
         router.push("/historico");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erro na autenticação:", error);
       
+      const authError = error as AuthError;
+      
       // Tratamento específico para erros comuns
-      if (error.message.includes("rate limit exceeded")) {
+      if (authError.message.includes("rate limit exceeded")) {
         setError("Limite de tentativas excedido. Por favor, tente novamente em alguns minutos.");
-      } else if (error.message.includes("Invalid login credentials")) {
+      } else if (authError.message.includes("Invalid login credentials")) {
         setError("Email ou senha inválidos.");
-      } else if (error.message.includes("Email not confirmed")) {
+      } else if (authError.message.includes("Email not confirmed")) {
         setError("Por favor, verifique seu email para confirmar a conta.");
       } else {
         setError(
