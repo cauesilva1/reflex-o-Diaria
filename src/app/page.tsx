@@ -1,16 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import ChatBubble from "../components/ChatBubble";
 import InputArea from "../components/InputArea";
 import TypingIndicator from "../components/TypingIndicator";
 import LanguageSelector from "../components/LanguageSelector";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { generateReflection, saveReflection, type ReflectionData, type Language } from "../lib/apiClient";
+import { getCurrentUser } from "@/lib/auth";
+import HistoryButton from "../components/HistoryButton";
 
 type Message = { text: string; isUser: boolean };
 
 const ReflectionDetails = ({ reflection, onSave, onDiscard }: {
-  reflection: ReflectionData;
+  reflection: Omit<ReflectionData, 'user_id'>;
   onSave: () => void;
   onDiscard: () => void;
 }) => (
@@ -64,10 +67,27 @@ const ReflectionDetails = ({ reflection, onSave, onDiscard }: {
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [reflection, setReflection] = useState<ReflectionData | null>(null);
+  const [reflection, setReflection] = useState<Omit<ReflectionData, 'user_id'> | null>(null);
   const [clearInput, setClearInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState<Language>("pt");
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) {
+          router.push("/login");
+        }
+      } catch (error) {
+        console.error("Erro ao verificar autenticação:", error);
+        router.push("/login");
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleSend = async (text: string, type: "bible" | "psych") => {
     setMessages((prev) => [...prev, { text, isUser: true }]);
@@ -129,10 +149,13 @@ export default function Home() {
         <div className="bg-white rounded-xl shadow-xl w-full md:w-2/3 flex flex-col p-6 max-h-[90vh] min-h-[80vh] border border-gray-100">
           <h1 className="text-3xl font-bold text-center text-indigo-600 mb-4">Reflexão do Dia</h1>
           
-          <LanguageSelector
-            currentLanguage={language}
-            onLanguageChange={setLanguage}
-          />
+          <div className="flex justify-between items-center mb-4">
+            <LanguageSelector
+              currentLanguage={language}
+              onLanguageChange={setLanguage}
+            />
+            <HistoryButton />
+          </div>
 
           <ScrollArea className="flex-1 mb-4 bg-gray-50 p-6 rounded-lg overflow-auto">
             <div className="space-y-4">

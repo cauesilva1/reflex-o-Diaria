@@ -1,7 +1,5 @@
 import { supabase } from '@/app/lib/supabaseClient';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export type ReflectionType = 'bible' | 'psych';
 export type Language = 'pt' | 'en';
 
@@ -10,6 +8,8 @@ export type ReflectionData = {
   reflection: string;
   type: ReflectionType;
   language: Language;
+  user_id: string;
+  created_at?: string;
 };
 
 export type ApiError = {
@@ -33,13 +33,12 @@ export const generateReflection = async (
   console.log('Iniciando generateReflection com:', { text, type, language });
   try {
     const requestBody = { input_text: text, type, language };
-    console.log('JSON sendo enviado para o backend:', JSON.stringify(requestBody, null, 2));
+    console.log('JSON sendo enviado para a API:', JSON.stringify(requestBody, null, 2));
     
-    const response = await fetch(`${API_BASE_URL}/generate-reflection`, {
+    const response = await fetch('/api/generate-reflection', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
       },
       body: JSON.stringify(requestBody),
     });
@@ -48,13 +47,25 @@ export const generateReflection = async (
       status: response.status,
       statusText: response.statusText,
       ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Resposta de erro:', errorText);
-      throw new Error(`Erro na API: ${response.statusText} - ${errorText}`);
+      const errorData = await response.json();
+      console.error('Resposta de erro:', errorData);
+      
+      // Mensagens de erro mais amigáveis
+      if (response.status === 502) {
+        throw new Error('O servidor de reflexões está temporariamente indisponível. Por favor, tente novamente em alguns minutos.');
+      } else if (response.status === 504) {
+        throw new Error('O servidor está demorando mais que o esperado para gerar a reflexão. Por favor, aguarde um pouco mais.');
+      } else if (response.status === 500) {
+        const errorMessage = errorData.details 
+          ? `Erro interno do servidor: ${errorData.details}`
+          : 'Ocorreu um erro interno no servidor de reflexões. Por favor, tente novamente em alguns minutos.';
+        throw new Error(errorMessage);
+      } else {
+        throw new Error(errorData.error || 'Erro ao gerar reflexão. Por favor, tente novamente.');
+      }
     }
 
     const data = await response.json();
@@ -62,25 +73,25 @@ export const generateReflection = async (
     
     if (!data.reflection) {
       console.error('Resposta da API sem reflection:', data);
-      throw new Error('Resposta da API inválida');
+      throw new Error('Não foi possível gerar uma reflexão válida. Por favor, tente novamente.');
     }
 
     return data.reflection;
   } catch (error) {
     console.error('Erro detalhado em generateReflection:', error);
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://127.0.0.1:8000');
-    }
     throw handleApiError(error);
   }
 };
 
-export const saveReflection = async (reflectionData: ReflectionData): Promise<boolean> => {
+export const saveReflection = async (reflectionData: Omit<ReflectionData, 'user_id'>): Promise<boolean> => {
   console.log('Iniciando saveReflection com:', reflectionData);
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from('reflections')
-      .insert([reflectionData]);
+      .insert([{ ...reflectionData, user_id: user.id }]);
 
     console.log('Resposta do Supabase:', { error });
 
