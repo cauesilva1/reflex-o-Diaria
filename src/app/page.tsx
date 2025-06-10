@@ -10,7 +10,7 @@ import { generateReflection, saveReflection, type ReflectionData, type Language 
 import { getCurrentUser } from "@/lib/auth";
 import HistoryButton from "../components/HistoryButton";
 
-type Message = { text: string; isUser: boolean };
+type Message = { text: string; isUser: boolean; isError?: boolean; retryAction?: () => void };
 
 const ReflectionDetails = ({ reflection, onSave, onDiscard }: {
   reflection: Omit<ReflectionData, 'user_id'>;
@@ -108,11 +108,15 @@ export default function Home() {
       setReflection({ text, reflection: reflectionText, type, language });
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao se comunicar com a IA";
+      
       setMessages((prev) => [
         ...prev,
         {
-          text: "Erro ao se comunicar com a IA. Tente novamente mais tarde.",
+          text: errorMessage,
           isUser: false,
+          isError: true,
+          retryAction: errorMessage.includes("iniciando") ? () => handleSend(text, type) : undefined
         },
       ]);
     } finally {
@@ -131,13 +135,13 @@ export default function Home() {
         setMessages([]);
         setReflection(null);
         setClearInput(true);
-      }
-    } catch (error) {
-      console.error("Erro ao tentar salvar reflexão:", error);
+        }
+      } catch (error) {
+        console.error("Erro ao tentar salvar reflexão:", error);
       alert("Erro ao salvar reflexão. Tente novamente.");
     }
   };
-
+  
   const handleDiscardReflection = () => {
     setReflection(null);
   };
@@ -159,15 +163,15 @@ export default function Home() {
 
           <ScrollArea className="flex-1 mb-4 bg-gray-50 p-6 rounded-lg overflow-auto">
             <div className="space-y-4">
-              {messages.map((msg, i) => (
-                <ChatBubble key={i} message={msg.text} isUser={msg.isUser} />
-              ))}
+        {messages.map((msg, i) => (
+          <ChatBubble key={i} message={msg.text} isUser={msg.isUser} />
+        ))}
               {isLoading && (
                 <div className="flex justify-start">
                   <TypingIndicator />
                 </div>
               )}
-            </div>
+      </div>
           </ScrollArea>
 
           <div className="mt-4">

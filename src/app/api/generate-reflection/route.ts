@@ -68,7 +68,13 @@ export async function POST(request: Request) {
 
         let errorMessage = 'Erro ao gerar reflexão';
         if (response.status === 502) {
-          errorMessage = 'O servidor de reflexões está temporariamente indisponível';
+          errorMessage = 'O servidor está iniciando. Por favor, aguarde alguns segundos e tente novamente.';
+          console.error('Erro 502 do Render:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText,
+            headers: Object.fromEntries(response.headers.entries())
+          });
         } else if (response.status === 504) {
           errorMessage = 'O servidor está demorando mais que o esperado para gerar a reflexão. Por favor, aguarde um pouco mais.';
         } else if (response.status === 500) {
@@ -84,7 +90,8 @@ export async function POST(request: Request) {
         return NextResponse.json(
           { 
             error: errorMessage,
-            details: errorText
+            details: errorText,
+            status: response.status
           },
           { status: response.status }
         );
