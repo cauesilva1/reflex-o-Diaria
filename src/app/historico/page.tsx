@@ -121,7 +121,9 @@ export default function HistoricoPage() {
                       </span>
                     </div>
                     <span className="text-sm text-gray-500">
-                      {new Date(reflection.created_at).toLocaleDateString()}
+                      {reflection.created_at 
+                        ? new Date(reflection.created_at).toLocaleDateString()
+                        : 'Data não disponível'}
                     </span>
                   </div>
 
