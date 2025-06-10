@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function POST(request: Request) {
   console.log('API route iniciada');
   console.log('BACKEND_URL:', BACKEND_URL);
+
+  if (!BACKEND_URL) {
+    console.error('BACKEND_URL não está definida');
+    return NextResponse.json(
+      { error: 'Configuração do servidor inválida. BACKEND_URL não definida.' },
+      { status: 500 }
+    );
+  }
 
   try {
     const body = await request.json();
@@ -96,6 +104,7 @@ export async function POST(request: Request) {
       return NextResponse.json(data);
     } catch (fetchError) {
       console.error('Erro na requisição ao backend:', fetchError);
+      
       if (fetchError instanceof Error) {
         if (fetchError.name === 'AbortError') {
           return NextResponse.json(
@@ -103,6 +112,22 @@ export async function POST(request: Request) {
             { status: 504 }
           );
         }
+        
+        // Tratamento específico para erros de conexão
+        if (fetchError.message.includes('ECONNREFUSED') || fetchError.message.includes('fetch failed')) {
+          console.error('Erro de conexão com o backend:', {
+            error: fetchError,
+            backendUrl: BACKEND_URL
+          });
+          return NextResponse.json(
+            { 
+              error: 'Não foi possível conectar ao servidor de reflexões. Por favor, verifique se o servidor está online.',
+              details: 'Erro de conexão com o backend'
+            },
+            { status: 503 }
+          );
+        }
+
         return NextResponse.json(
           { 
             error: 'Erro ao conectar com o servidor de reflexões',
