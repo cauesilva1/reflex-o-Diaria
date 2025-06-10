@@ -1,43 +1,91 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import ChatBubble from "../components/ChatBubble";
 import InputArea from "../components/InputArea";
+import TypingIndicator from "../components/TypingIndicator";
+import LanguageSelector from "../components/LanguageSelector";
 import { ScrollArea } from "../components/ui/scroll-area";
+import { generateReflection, saveReflection, type ReflectionData, type Language } from "../lib/apiClient";
 
 type Message = { text: string; isUser: boolean };
-type ReflectionData = {
-  type: "bible" | "psych";
-  reflection: string;
-  text: string;
-};
+
+const ReflectionDetails = ({ reflection, onSave, onDiscard }: {
+  reflection: ReflectionData;
+  onSave: () => void;
+  onDiscard: () => void;
+}) => (
+  <div className="bg-white rounded-xl shadow-xl w-full md:w-1/3 flex flex-col p-6 max-h-[90vh] min-h-[80vh] border border-gray-100">
+    <ScrollArea className="flex-1 bg-gray-50 p-6 rounded-lg overflow-auto">
+      <div className="text-gray-800 space-y-6">
+        <div>
+          <h3 className="font-semibold text-2xl mb-6 text-indigo-600">Detalhes da Reflexão</h3>
+          <div className="space-y-4">
+            <div>
+              <div className="font-medium text-gray-700 mb-2">O que você escreveu:</div>
+              <p className="text-gray-600 bg-white p-4 rounded-lg border border-gray-100 shadow-sm">{reflection.text}</p>
+            </div>
+            <div>
+              <div className="font-medium text-gray-700 mb-2">Tipo de Reflexão:</div>
+              <p className="text-gray-600 bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                {reflection.type === "bible" ? "Bíblica" : "Psicológica"}
+              </p>
+            </div>
+            <div>
+              <div className="font-medium text-gray-700 mb-2">Idioma:</div>
+              <p className="text-gray-600 bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                {reflection.language === "pt" ? "Português" : "English"}
+              </p>
+            </div>
+            <div>
+              <div className="font-medium text-gray-700 mb-2">Resposta da IA:</div>
+              <p className="text-gray-600 bg-white p-4 rounded-lg border border-gray-100 shadow-sm whitespace-pre-wrap">{reflection.reflection}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ScrollArea>
+
+    <div className="flex flex-col sm:flex-row gap-4 mt-6 justify-center">
+      <button
+        className="bg-indigo-600 text-white py-3 px-8 rounded-lg hover:bg-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+        onClick={onSave}
+      >
+        Salvar Reflexão
+      </button>
+      <button
+        className="bg-gray-100 text-gray-700 py-3 px-8 rounded-lg hover:bg-gray-200 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+        onClick={onDiscard}
+      >
+        Descartar
+      </button>
+    </div>
+  </div>
+);
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [reflection, setReflection] = useState<ReflectionData | null>(null);
   const [clearInput, setClearInput] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [language, setLanguage] = useState<Language>("pt");
 
   const handleSend = async (text: string, type: "bible" | "psych") => {
     setMessages((prev) => [...prev, { text, isUser: true }]);
+    setIsLoading(true);
 
     try {
-      const res = await fetch("/api/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, type }),
-      });
+      const reflectionText = await generateReflection(text, type, language);
 
-      const data = await res.json();
-
-      if (!data.response || data.response.trim().length === 0) {
+      if (!reflectionText?.trim()) {
         throw new Error("Reflexão gerada vazia");
       }
 
       setMessages((prev) => [
         ...prev,
-        { text: data.response, isUser: false },
+        { text: reflectionText, isUser: false },
       ]);
 
-      setReflection({ text, reflection: data.response, type });
+      setReflection({ text, reflection: reflectionText, type, language });
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
       setMessages((prev) => [
@@ -47,40 +95,26 @@ export default function Home() {
           isUser: false,
         },
       ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSaveReflection = async () => {
-    if (reflection) {
-      try {
-        const res = await fetch("/api/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text: reflection.text,
-            reflection: reflection.reflection,
-            type: reflection.type,
-          }),
-        });
+    if (!reflection) return;
 
-        const data = await res.json();
-        console.log("Resposta da API:", data);
+    try {
+      const success = await saveReflection(reflection);
 
-        if (data.success) {
-          alert("Reflexão salva com sucesso!");
-          setMessages([]);       // Limpa mensagens
-          setReflection(null);   // Limpa reflexão
-          setClearInput(true);   // Dispara limpeza do input
-        } else {
-          console.error("Erro ao salvar reflexão:", data.message || "Erro desconhecido");
-        }
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          console.error("Erro ao tentar salvar reflexão:", error.message || error.toString());
-        } else {
-          console.error("Erro desconhecido:", error);
-        }
+      if (success) {
+        alert("Reflexão salva com sucesso!");
+        setMessages([]);
+        setReflection(null);
+        setClearInput(true);
       }
+    } catch (error) {
+      console.error("Erro ao tentar salvar reflexão:", error);
+      alert("Erro ao salvar reflexão. Tente novamente.");
     }
   };
 
@@ -88,61 +122,43 @@ export default function Home() {
     setReflection(null);
   };
 
-  // Reseta o sinal após limpar o input
-  useEffect(() => {
-    if (clearInput) {
-      setClearInput(false);
-    }
-  }, [clearInput]);
-
   return (
-    <main className="min-h-screen bg-gray-100 flex justify-center items-center px-4 py-8">
-      <div className="flex flex-col md:flex-row gap-6 w-full max-w-screen-lg">
+    <main className="min-h-screen bg-gradient-to-br from-indigo-50 to-white flex justify-center items-center px-4 py-8">
+      <div className="flex flex-col md:flex-row gap-8 w-full max-w-screen-lg">
         {/* Área de mensagens */}
-        <div className="bg-white rounded-lg shadow-lg w-full md:w-2/3 flex flex-col p-6 max-h-[90vh] min-h-[80vh]">
-          <h1 className="text-3xl font-semibold text-center text-gray-800 mb-6">Reflexão do Dia</h1>
+        <div className="bg-white rounded-xl shadow-xl w-full md:w-2/3 flex flex-col p-6 max-h-[90vh] min-h-[80vh] border border-gray-100">
+          <h1 className="text-3xl font-bold text-center text-indigo-600 mb-4">Reflexão do Dia</h1>
+          
+          <LanguageSelector
+            currentLanguage={language}
+            onLanguageChange={setLanguage}
+          />
 
-          <ScrollArea className="flex-1 mb-4 bg-gray-50 p-4 rounded-lg overflow-auto">
-            {messages.map((msg, i) => (
-              <ChatBubble key={i} message={msg.text} isUser={msg.isUser} />
-            ))}
+          <ScrollArea className="flex-1 mb-4 bg-gray-50 p-6 rounded-lg overflow-auto">
+            <div className="space-y-4">
+              {messages.map((msg, i) => (
+                <ChatBubble key={i} message={msg.text} isUser={msg.isUser} />
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <TypingIndicator />
+                </div>
+              )}
+            </div>
           </ScrollArea>
 
-          <InputArea onSend={handleSend} clearSignal={clearInput} />
+          <div className="mt-4">
+            <InputArea onSend={handleSend} clearSignal={clearInput} />
+          </div>
         </div>
 
         {/* Área da reflexão */}
         {reflection && (
-          <div className="bg-white rounded-lg shadow-lg w-full md:w-1/3 flex flex-col p-6 max-h-[90vh] min-h-[80vh]">
-            <ScrollArea className="flex-1 bg-gray-50 p-4 rounded-lg overflow-auto">
-              <div className="text-gray-800">
-                <h3 className="font-semibold text-xl mb-4">Detalhes da Reflexão</h3>
-                <div className="font-medium">O que você escreveu:</div>
-                <p className="text-gray-600">{reflection.text}</p>
-                <div className="font-medium mt-4">Tipo de Reflexão:</div>
-                <p className="text-gray-600">
-                  {reflection.type === "bible" ? "Bíblica" : "Psicológica"}
-                </p>
-                <div className="font-medium mt-4">Resposta da IA:</div>
-                <p className="text-gray-600">{reflection.reflection}</p>
-              </div>
-            </ScrollArea>
-
-            <div className="flex flex-col sm:flex-row gap-4 mt-6 justify-center">
-              <button
-                className="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-green-600 transition"
-                onClick={handleSaveReflection}
-              >
-                Salvar
-              </button>
-              <button
-                className="bg-red-500 text-white py-2 px-6 rounded-lg hover:bg-red-600 transition"
-                onClick={handleDiscardReflection}
-              >
-                Não Salvar
-              </button>
-            </div>
-          </div>
+          <ReflectionDetails
+            reflection={reflection}
+            onSave={handleSaveReflection}
+            onDiscard={handleDiscardReflection}
+          />
         )}
       </div>
     </main>

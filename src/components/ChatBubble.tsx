@@ -1,21 +1,31 @@
 // components/ChatBubble.tsx
 import React from "react";
+import { motion } from "framer-motion";
 
-interface Props {
+interface ChatBubbleProps {
   message: string;
-  isUser?: boolean;
+  isUser: boolean;
 }
 
-export default function ChatBubble({ message, isUser = false }: Props) {
+const ChatBubble = ({ message, isUser }: ChatBubbleProps) => {
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-2`}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+    >
       <div
-        className={`max-w-xs px-4 py-2 rounded-2xl shadow-sm ${
-          isUser ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
+        className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+          isUser
+            ? "bg-indigo-600 text-white rounded-br-none"
+            : "bg-gray-100 text-gray-800 rounded-bl-none"
         }`}
       >
-        {message}
+        <p className="whitespace-pre-wrap">{message}</p>
       </div>
-    </div>
+    </motion.div>
   );
-}
+};
+
+export default ChatBubble;
