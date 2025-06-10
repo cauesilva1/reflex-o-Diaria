@@ -1,6 +1,6 @@
 import { supabase } from '@/app/lib/supabaseClient';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export type ReflectionType = 'bible' | 'psych';
 export type Language = 'pt' | 'en';
@@ -23,26 +23,6 @@ const handleApiError = (error: unknown): ApiError => {
     return { message: error.message };
   }
   return { message: 'Erro desconhecido' };
-};
-
-const extractQuotedText = (text: string): string => {
-  console.log('Texto original recebido:', text);
-  
-  // Procura por texto entre aspas duplas
-  const matches = text.match(/"([^"]+)"/g);
-  console.log('Matches encontrados:', matches);
-  
-  if (matches && matches.length > 0) {
-    // Pega o último match (caso haja mais de um)
-    const lastMatch = matches[matches.length - 1];
-    // Remove as aspas
-    const extracted = lastMatch.slice(1, -1);
-    console.log('Texto extraído:', extracted);
-    return extracted;
-  }
-  
-  console.log('Nenhum texto entre aspas encontrado, retornando texto original');
-  return text;
 };
 
 export const generateReflection = async (
